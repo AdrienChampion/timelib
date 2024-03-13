@@ -16,6 +16,10 @@ import Lean.Data.Json
 /-! # Helpers used throughout `Timelib` -/
 namespace Timelib.Util
 
+
+
+/-! ## Json conversions for `Fin` (scoped) -/
+
 scoped instance instToJSonFin {n : Nat} : Lean.ToJson (Fin n) where
   toJson fin :=
     Lean.Json.mkObj [("val", Lean.ToJson.toJson fin.val)]
@@ -28,16 +32,21 @@ scoped instance instFromJSonFin {n : Nat} : Lean.FromJson (Fin n) where
     else Except.error s!"Fin.val out of range: {val} is not less than {n}"
 
 
+
+/-! ## `Fin` helpers -/
+namespace Fin
 /-- #TODO
 - better name
 - documentation
 -/
-def Fin.ofInt'' {n : ℕ} [Nonempty <| Fin n] : Int → Fin n
+def ofInt'' {n : ℕ} [Nonempty <| Fin n] : Int → Fin n
 | Int.ofNat a => Fin.ofNat' a Fin.size_positive'
 | Int.negSucc a => -(Fin.ofNat' a.succ Fin.size_positive')
+end Fin
 
 
 
+/-! ## `Nat` helpers -/
 namespace Nat
 
 theorem not_lt_and_gt {day lo hi : Nat}
@@ -78,6 +87,7 @@ end Nat
 
 
 
+/-! ## `Int` helpers -/
 namespace Int
 
 theorem h100 : ((146096 : Int) / 36524) * 100 = 400 := by decide
@@ -476,3 +486,5 @@ theorem toOrdinalDate_helper1 : ∀ {x : Int}, 1 ≤ x → 1 ≤ x.toNat
   have h_eq_zero : xN = 0 := Nat.eq_zero_of_le_zero (Nat.le_of_lt_succ (lt_of_not_ge h') : xN ≤ 0)
   rw [h_eq_zero] at h
   cases h
+
+end Int
