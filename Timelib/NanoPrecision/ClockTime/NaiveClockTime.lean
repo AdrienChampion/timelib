@@ -12,6 +12,10 @@ import Lean.Data.Json
 
 
 
+open Timelib.Util
+
+
+
 structure NaiveClockTime where
   nanos : Fin oneDayNanos
 deriving DecidableEq, Hashable, Repr, Lean.ToJson, Lean.FromJson

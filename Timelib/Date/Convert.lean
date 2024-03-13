@@ -16,6 +16,8 @@ import Timelib.Util
 
 open Lean
 
+open Timelib.Util
+
 theorem Year.lastDayFebruary_eq (y : Year) : y.lastDayFebruary = Month.february.numDays y + Year.lastDayJanuary := by
   by_cases h: y.isLeapYear <;> simp [h,  Month.numDays]
 
@@ -195,41 +197,70 @@ def ScalarDate.toOrdinalDateYear (d : ScalarDate) : Year :=
   let isLastDayOfLeapYear := num100YearGroups = 4 ∨ numSingleYears = 4
   Year.mk (yearsFrom400Groups + yearsFrom100Groups + yearsFrom4Groups + numSingleYears + (if isLastDayOfLeapYear then 0 else 1))
 
-example (a b : ℤ) (h: a ≤ b) (h0 : 0 < b): a % b < b:= by exact Int.emod_lt_of_pos a h0
+example (a b : ℤ) /- (h : a ≤ b) -/ (h0 : 0 < b) : a % b < b := by
+  exact Int.emod_lt_of_pos a h0
 
 theorem ScalarDate.toOrdinalDateYear_leap (d : ScalarDate) :
   d.toOrdinalDateYearIsLastDayOfLeapYear → d.toOrdinalDateYear.isLeapYear := by
-  simp only [ScalarDate.toOrdinalDateYearIsLastDayOfLeapYear, Year.isLeapYear, ScalarDate.toOrdinalDateYear]
+  simp only [
+    ScalarDate.toOrdinalDateYearIsLastDayOfLeapYear,
+    Year.isLeapYear,
+    ScalarDate.toOrdinalDateYear
+  ]
   refine Or.rec ?l ?r
   case l =>
     intro h
     have h_eq : (Int.fmod (d.day - 1) 146097) = 146096 := by
       have hle_left : 146096 ≤ Int.fmod (d.day - 1) 146097 :=
-         @Int.mul_le_of_le_div 4 (b := Int.fmod (d.day - 1) 146097) 36524 pos36524 (le_of_eq h.symm)
+         @Int.mul_le_of_le_div
+          4
+          (b := Int.fmod (d.day - 1) 146097)
+          36524
+          Int.pos36524
+          (le_of_eq h.symm)
       refine' le_antisymm (Int.le_of_add_le_add_right _ ) hle_left
       use 1
-      exact (Int.fmod_lt _ pos146097)
+      exact (Int.fmod_lt _ Int.pos146097)
     apply Or.inr
-    simp [h_eq, h4, h1, h100, hdiv']
+    simp [h_eq, Int.h4, Int.h1, Int.h100, Int.hdiv']
     norm_num
   case r =>
     intro h
     have h_eq : (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) = 1460 := by
       have hle_left : 1460 ≤ (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) :=
-        @Int.mul_le_of_le_div 4 ((((Int.fmod (d.day - 1) 146097) % 36524) % 1461)) 365 (pos365) (le_of_eq h.symm)
-      refine' le_antisymm ((Int.lt_add_one_iff ).mp <| Int.emod_lt_of_pos _ pos1461) hle_left
+        @Int.mul_le_of_le_div 4
+        ((((Int.fmod (d.day - 1) 146097) % 36524) % 1461))
+        365
+        (Int.pos365)
+        (le_of_eq h.symm)
+      refine'
+        Int.emod_lt_of_pos _ Int.pos1461
+        |> Int.lt_add_one_iff.mp
+        |> (le_antisymm · hle_left)
     apply Or.inl
-    simp [h_eq, h100, h4, h1, hdiv, hdiv']
+    simp [h_eq, Int.h100, Int.h4, Int.h1, Int.hdiv, Int.hdiv']
     refine And.intro ?ll ?rr
     case ll =>
-      have hleft : (Int.fdiv (d.day - 1) 146097) * 400 = ((Int.fdiv (d.day - 1) 146097) * 100) * 4 := by
-        rw [mul_assoc _ 100 4]; simp [show (100 : Int) * 4 = 400 by decide]
-      have hright : ((Int.fmod (d.day - 1) 146097) / 36524) * 100 = (((Int.fmod (d.day - 1) 146097) / 36524) * 25) * 4 := by
-        rw [mul_assoc _ 25 4]; simp [show (25 : Int) * 4 = 100 by decide]
+      have hleft :
+        (Int.fdiv (d.day - 1) 146097) * 400
+        = ((Int.fdiv (d.day - 1) 146097) * 100) * 4
+      := by
+        rw [mul_assoc _ 100 4]
+        simp [show (100 : Int) * 4 = 400 by decide]
+      have hright :
+        ((Int.fmod (d.day - 1) 146097) / 36524) * 100
+        = (((Int.fmod (d.day - 1) 146097) / 36524) * 25) * 4
+      := by
+        rw [mul_assoc _ 25 4]
+        simp [show (25 : Int) * 4 = 100 by decide]
       simp [hleft, hright, (Int.mul_add _ _ _).symm]
     case rr =>
-      have hleft : (Int.fdiv (d.day - 1) 146097) * 400 = ((Int.fdiv (d.day - 1) 146097) * 4) * 100 := by
-        rw [mul_assoc _ 4 100]; simp [show (4 : Int) * 100 = 400 by decide]
+      have hleft :
+        (Int.fdiv (d.day - 1) 146097) * 400
+        = ((Int.fdiv (d.day - 1) 146097) * 4) * 100
+      := by
+        rw [mul_assoc _ 4 100]
+        simp [show (4 : Int) * 100 = 400 by decide]
       simp [hleft, (Int.mul_add _ _ _).symm]
       rw [add_assoc]
       simp
@@ -237,18 +268,20 @@ theorem ScalarDate.toOrdinalDateYear_leap (d : ScalarDate) :
       have hdiv_nonneg : 0 ≤ (Int.fmod (d.day - 1) 146097) % 36524 / 1461 :=
         sorry
         --Int.div_nonneg (Int.mod_nonneg _ (by decide)) (le_of_lt pos1461)
-      have hlt_100 : ((Int.fmod (d.day - 1) 146097) % 36524) / 1461 * 4 + 4 < 100 := by
+      have hlt_100 :
+        ((Int.fmod (d.day - 1) 146097) % 36524) / 1461 * 4 + 4 < 100
+      := by
         apply Int.add_lt_of_lt_sub_right
         rw [(show (100 : Int) - 4 = 96 by decide)]
-        apply Int.mul_lt_of_lt_div pos4
+        apply Int.mul_lt_of_lt_div Int.pos4
         rw [(show (96 : Int) / 4 = 24 by decide)]
-        apply Int.div_lt_of_lt_mul pos1461
+        apply Int.div_lt_of_lt_mul Int.pos1461
         rw [(show (24 : Int) * 1461 = 35064 by decide)]
         apply lt_of_not_ge
         intro hf
         cases lt_or_eq_of_le hf with
         | inl hl =>
-          have lt_upper : (Int.fmod (d.day - 1) 146097) % 36524 < 36524 := Int.emod_lt_of_pos _ pos36524
+          have lt_upper : (Int.fmod (d.day - 1) 146097) % 36524 < 36524 := Int.emod_lt_of_pos _ Int.pos36524
           have h_fac_24 :  (1461 : Int) * 24 = 35064 := by decide
           rw [<- h_fac_24] at hl hf
           have h_lt25 : ((Int.fmod (d.day - 1) 146097) % 36524) < (1461 : Int) * 25 := by
@@ -256,7 +289,13 @@ theorem ScalarDate.toOrdinalDateYear_leap (d : ScalarDate) :
             rw [h_fac_25]; exact lt_trans lt_upper (by decide)
           have h_hard : ((Int.fmod (d.day - 1) 146097) % 36524) / 1461 = 24 := by
             exact Int.div_pigeonhole (Int.emod_nonneg _ (by decide)) (by decide) (by decide) hl h_lt25
-          have h_from := ((@Int.div_mod_unique ((Int.fmod (d.day - 1) 146097) % 36524) 1461 1460 24 (show (0 : Int) < 1461 by decide)).mp (And.intro h_hard h_eq)).left
+          have h_from :=
+            show (0 : Int) < 1461 by decide
+            |> @Int.div_mod_unique
+              ((Int.fmod (d.day - 1) 146097) % 36524)
+              1461 1460 24
+            |>.mp (And.intro h_hard h_eq)
+            |>.left
           rw [<- h_from] at lt_upper
           norm_num at lt_upper
           done
@@ -265,14 +304,19 @@ theorem ScalarDate.toOrdinalDateYear_leap (d : ScalarDate) :
           have hne : Int.fmod 35064 1461 ≠ 1460 := by decide
           exact False.elim (hne h_eq)
       have hmul4 : 0 <=(Int.fmod (d.day - 1) 146097) % 36524 / 1461 * 4 :=
-        Int.mul_nonneg hdiv_nonneg (le_of_lt pos4)
+        Int.mul_nonneg hdiv_nonneg (le_of_lt Int.pos4)
       have hout :
         ((Int.fmod (d.day - 1) 146097) % 36524 / 1461 * 4 + 4) % 100 =
         (Int.fmod (d.day - 1) 146097) % 36524 / 1461 * 4 + 4 := by
         refine Int.emod_eq_of_lt ?x hlt_100
-        exact Int.add_right_nonneg (Int.mul_nonneg hdiv_nonneg (le_of_lt pos4)) (le_of_lt pos4)
+        exact Int.add_right_nonneg
+          (Int.mul_nonneg hdiv_nonneg (le_of_lt Int.pos4))
+          (le_of_lt Int.pos4)
       rw [hout] at hf
-      have h_ne_zero : ((Int.fmod (d.day - 1) 146097) % 36524 / 1461 * 4) + 4 ≠ 0 := Int.add_pos_ne_zero_of_nonneg hmul4 (by decide)
+      have h_ne_zero :
+        ((Int.fmod (d.day - 1) 146097) % 36524 / 1461 * 4) + 4 ≠ 0
+      :=
+        Int.add_pos_ne_zero_of_nonneg hmul4 (by decide)
       refine' False.elim (h_ne_zero hf)
       done
 
@@ -312,10 +356,10 @@ def ScalarDate.toOrdinalDate (d : ScalarDate) : OrdinalDate :=
   have h_day_ge_one : 1 <= day.toNat := by
     by_cases hleap : isLastDayOfLeapYear <;> simp [hleap]
     case neg =>
-      refine toOrdinalDate_helper1 ?hle
+      refine Int.toOrdinalDate_helper1 ?hle
       refine' Int.le_add_of_sub_right_le _
       norm_num
-      refine' (Int.emod_nonneg _ (ne_of_lt pos365).symm)
+      refine' (Int.emod_nonneg _ (ne_of_lt Int.pos365).symm)
     sorry
   have hle' : Int.toNat day ≤ Year.numDaysInGregorianYear year := by
     by_cases hleap : isLastDayOfLeapYear <;> simp [hleap]
@@ -326,7 +370,8 @@ def ScalarDate.toOrdinalDate (d : ScalarDate) : OrdinalDate :=
       decide
     -- If it's not the last day of a leap year.
     case neg =>
-      generalize hday : (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) % 365  = day
+      generalize hday :
+        (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) % 365  = day
       generalize hy' :
         Year.mk
           (Int.fdiv (d.day - 1) 146097 * 400
@@ -334,9 +379,17 @@ def ScalarDate.toOrdinalDate (d : ScalarDate) : OrdinalDate :=
           + ((Int.fmod (d.day - 1) 146097) % 36524) / 1461 * 4
           + (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) / 365 + 1) = y'
       have hd' : day < 365 :=
-        hday ▸ (Int.emod_lt_of_pos (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) pos365)
+        hday ▸ (
+          Int.emod_lt_of_pos
+            (((Int.fmod (d.day - 1) 146097) % 36524) % 1461)
+            Int.pos365
+        )
       have hpos : 0 <= day :=
-        hday ▸ (Int.emod_nonneg (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) (ne_of_lt pos365).symm)
+        hday ▸ (
+          Int.emod_nonneg
+            (((Int.fmod (d.day - 1) 146097) % 36524) % 1461)
+            (ne_of_lt Int.pos365).symm
+      )
       norm_num
       sorry
       --exact Int.toNat_le_of_le_of_nonneg (Int.add_nonneg hpos (by decide)) (le_trans (hd' : (day + 1) <= 365) y'.num_days_in_gregorian_year_ge_365)
